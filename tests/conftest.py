@@ -67,5 +67,7 @@ def engine_projection(template_fund: Fund) -> pd.DataFrame:
 def assumptions_funds() -> list[Fund]:
     progress(f"Loading funds from {ASSUMPTIONS_PATH.name}...")
     funds = load_funds_from_assumptions(ASSUMPTIONS_PATH)
+    if not funds:
+        pytest.fail(f"No funds loaded from {ASSUMPTIONS_PATH}")
     progress(f"  Loaded {len(funds)} funds")
     return funds

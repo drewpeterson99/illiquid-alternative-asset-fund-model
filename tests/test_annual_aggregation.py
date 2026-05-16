@@ -89,19 +89,23 @@ def test_annual_matches_model_template(
 
 
 def test_funds_annual_output(assumptions_funds) -> None:
+    funds_monthly = build_fund_detail(assumptions_funds, DEFAULT_AS_OF_DATE)
     funds_annual = aggregate_monthly_to_annual(
-        build_fund_detail(assumptions_funds, DEFAULT_AS_OF_DATE),
+        funds_monthly,
         as_of_date=DEFAULT_AS_OF_DATE,
         group_keys=_FUND_ANNUAL_GROUP_KEYS,
     )
     assert set(funds_annual["fund"]).issubset({f.name for f in assumptions_funds})
     assert len(funds_annual) > 0
 
-    for name, months in {"Fund A": 5, "Fund O": 1}.items():
-        row = funds_annual[
-            (funds_annual["fund"] == name) & (funds_annual["year"] == 2026)
-        ].iloc[0]
-        assert row["operating_months"] == months
+    for _, arow in funds_annual.iterrows():
+        operating = funds_monthly[
+            (funds_monthly["fund"] == arow["fund"])
+            & (funds_monthly["period"] > 0)
+            & (pd.to_datetime(funds_monthly["end_date"]).dt.year == arow["year"])
+        ]
+        assert arow["operating_months"] == len(operating)
+
 
 
 def test_annual_rollup_rules(template_fund) -> None:
