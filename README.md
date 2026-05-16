@@ -59,6 +59,37 @@ Portfolio aggregation converts each fund’s monthly table to USD, then sums num
 
 Annual aggregation groups operating months (`period > 0`) into calendar years, takes commitment/NAV snapshots from the last month in each year, and computes `period_return` and `dividend_return` from average NAV.
 
+## Monthly output fields (`NUMERIC_OUTPUT_COLUMNS`)
+
+These columns appear on each fund’s monthly rows (Funds Monthly tab). Unless noted, formulas apply to **operating months** (`period > 0`). **Period 0** is an as-of snapshot; **liquidation** is a one-month wind-down when termination is on or before the as-of date.
+
+| Field | How it is calculated |
+|-------|----------------------|
+| **total_commitment** | Total commitment while the fund is “active” (from initial commitment month through termination); otherwise `0`. |
+| **effective_commitment** | `total_commitment × % of capital drawn` (`pct_drawn`). |
+| **remaining_effective_unfunded** | During the investment phase (`period_end ≤ investment end date`): `max(0, effective_commitment − ending_capital)`. After investment ends: `0`. Feeds the next month’s capital-call calculation. |
+| **legal_unfunded** | Before reinvestment ends (`period_end < reinvestment end date`): `max(0, total_commitment − ending_capital)`. After reinvestment ends: `0`. |
+| **beginning_capital_account** | Prior month’s `ending_capital`. Period 0: not applicable (`NaN`). |
+| **capital_called** | Positive drawdown during the investment phase only. Remaining effective unfunded at the start of the month is spread evenly over the months from `period_start` through `investment end date`. No calls after investment ends, if reinvestment already ended before projection start, or if funded amount already exceeds effective commitment. |
+| **roc** (return of capital) | Negative cash return of invested capital during **harvest** (`period_end > reinvestment end date`). The base amount is `beginning_capital_account + capital_called`, returned on the harvest schedule (evenly by month until termination, or fully in the termination month). |
+| **ending_capital** | `beginning_capital_account + capital_called + roc`. Period 0: `funded_amount` if still in investment phase; otherwise `min(stated NAV, total commitment)`. Liquidation month: `0`. |
+| **beginning_unrealized_gl** | Opening unrealized gain/loss. Period 1: `max(stated NAV − funded amount, 0)`. Later months: prior `ending_unrealized_gl`. Period 0: `NaN`. |
+| **asset_income** | `max(prior month NAV × monthly_return, 0)` while `period_end ≤ termination date`; otherwise `0`. `monthly_return = (1 + annual_return)^(1/12) − 1`. Period 0: `NaN`. |
+| **mgmt_fee_amt** | Negative expense. If **paid on committed** and still in investment phase: `−effective_commitment × (mgmt fee / 12)`. Otherwise, if prior `ending_capital > 0`: `−ending_capital × (mgmt fee / 12)`. Period 0: `NaN`. |
+| **pre_carry_income** | `asset_income + mgmt_fee_amt`. Period 0: `NaN`. |
+| **carry_amt** | Negative carried interest when annualized pre-carry return exceeds the hurdle: if `(pre_carry_income / prior ending_capital) × 12 > carry hurdle`, then `−pre_carry_income × carry rate`; otherwise `0`. Period 0: `NaN`. |
+| **dividend** | Cash distribution (negative = paid to investors). Zero if distribution target is `0` or `period_end ≥ termination date`. Otherwise target is `prior NAV × (annual distribution target / 12)`, capped so the distribution does not exceed available net income after carry. Period 0: `NaN`. |
+| **retained_income** | `pre_carry_income + carry_amt + dividend`. Drives unrealized G/L for the month. Period 0: `NaN`. |
+| **period_gl** | Same as `retained_income` (period change in unrealized G/L before realization). Period 0: `NaN`. |
+| **gain_on_sale** | Realization of unrealized G/L. If termination falls in this month: `−(beginning_unrealized_gl + period_gl)`. If unrealized base is negative: `0`. Otherwise, same harvest schedule as ROC on `beginning_unrealized_gl + period_gl`. Liquidation month: `max(0, prior NAV − funded amount)`. Period 0: `NaN`. |
+| **ending_unrealized_gl** | `beginning_unrealized_gl + period_gl + gain_on_sale`. Period 0: `0`. Liquidation: `0`. |
+| **nav** | `ending_capital + ending_unrealized_gl`. Period 0: **stated NAV** from assumptions. Liquidation: `0`. |
+| **net_cf** | Net cash flow **to the investor** (positive = cash in). Operating months: `−(capital_called + roc + gain_on_sale + dividend)`. Period 0: `−stated NAV`. Liquidation: `roc + gain_on_sale`. |
+
+**Harvest schedule (shared by ROC and gain on sale):** After reinvestment ends, outflows are spread evenly across months from the current `period_end` through `termination date`, except the termination month, which returns the full remaining balance.
+
+**Initial unfunded for calls:** At load time, remaining effective unfunded is `max(0, effective commitment − funded amount)`, or `max(0, stated unfunded)` if provided. If funded amount already exceeds effective commitment, no further calls are modeled.
+
 ## Setup
 
 ```powershell
