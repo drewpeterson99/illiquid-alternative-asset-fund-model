@@ -8,7 +8,7 @@ The model reads fund-level assumptions from Excel, projects **monthly** cash flo
 
 Key behaviors:
 
-- **Life-cycle phases** — Each month is labeled *Investment*, *Reinvestment*, or *Harvest* from invest/reinvest end dates.
+- **Life-cycle phases** — Each month is labeled *Invest*, *Reinvest*, or *Harvest* from invest/reinvest end dates.
 - **Capital calls** — Remaining effective unfunded is drawn linearly through the investment end date.
 - **Harvest** — Return of capital, gain on sale, and final liquidation follow a schedule from reinvestment end through termination (including immediate liquidation when termination is on or before the as-of date).
 - **Income & fees** — Asset return, management fee (on commitment or invested capital), carry above a hurdle, and optional distributions.

@@ -581,9 +581,9 @@ class Fund:
         """Life-cycle label for the month (invest → reinvest → harvest)."""
         end = month_end(period_end)
         if end <= self.invest_end_date:
-            return "Investment"
+            return "Invest"
         if end <= self.reinvest_end_date:
-            return "Reinvestment"
+            return "Reinvest"
         return "Harvest"
 
     def _commitment_snapshot(

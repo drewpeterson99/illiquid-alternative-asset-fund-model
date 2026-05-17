@@ -52,9 +52,9 @@ def test_period_type_by_phase(template_fund: Fund, engine_projection: pd.DataFra
     for _, row in engine_projection.iterrows():
         end = row["end_date"]
         if end <= invest_end:
-            assert row["period_type"] == "Investment"
+            assert row["period_type"] == "Invest"
         elif end <= reinvest_end:
-            assert row["period_type"] == "Reinvestment"
+            assert row["period_type"] == "Reinvest"
         else:
             assert row["period_type"] == "Harvest"
 
