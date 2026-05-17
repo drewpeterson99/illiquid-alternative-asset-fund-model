@@ -129,6 +129,12 @@ def test_immediate_liquidation_next_month(
     assert df.loc[df["period"] == 1, "end_date"].iloc[0] == period1_end
     assert df.loc[df["period"] == 1, "nav"].iloc[0] == pytest.approx(period1_nav)
     assert df.loc[df["period"] == 1, "net_cf"].iloc[0] == pytest.approx(period1_net_cf)
+    p1 = df.loc[df["period"] == 1].iloc[0]
+    assert p1["roc"] <= 0
+    assert p1["gain_on_sale"] <= 0
+    assert p1["dividend"] <= 0
+    prior_nav = df.loc[df["period"] == 0, "nav"].iloc[0]
+    assert p1["roc"] + p1["dividend"] + p1["gain_on_sale"] == pytest.approx(-prior_nav)
 
 
 def test_stated_nav_floor_emits_warning() -> None:

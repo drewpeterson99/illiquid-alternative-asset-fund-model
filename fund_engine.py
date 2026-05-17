@@ -772,13 +772,16 @@ class Fund:
     ) -> dict[str, float]:
         """Wind down residual NAV in the month after the as-of period."""
         if self.funded_amount > 0:
-            roc = min(prior_nav, self.funded_amount)
+            roc = -min(prior_nav, self.funded_amount)
+            gain_on_sale = -max(0.0, prior_nav - self.funded_amount)
         else:
-            roc = prior_nav
-        gain_on_sale = max(0.0, prior_nav - self.funded_amount)
+            roc = -prior_nav
+            gain_on_sale = 0.0
+        capital_called = 0.0
+        dividend = 0.0
         return {
             "beginning_capital_account": prior_ending_capital,
-            "capital_called": 0.0,
+            "capital_called": capital_called,
             "roc": roc,
             "ending_capital": 0.0,
             "beginning_unrealized_gl": 0.0,
@@ -790,9 +793,9 @@ class Fund:
             "mgmt_fee_amt": 0.0,
             "pre_carry_income": 0.0,
             "carry_amt": 0.0,
-            "dividend": 0.0,
+            "dividend": dividend,
             "retained_income": 0.0,
-            "net_cf": roc + gain_on_sale,
+            "net_cf": -(capital_called + roc + gain_on_sale + dividend),
         }
 
     def _as_of_period(self, period_end: date, active: bool) -> dict[str, float]:

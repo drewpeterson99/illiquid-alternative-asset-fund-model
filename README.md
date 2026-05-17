@@ -71,7 +71,7 @@ These columns appear on each fund’s monthly rows (Funds Monthly tab). Unless n
 | **legal_unfunded** | Before reinvestment ends (`period_end < reinvestment end date`): `max(0, total_commitment − ending_capital)`. After reinvestment ends: `0`. |
 | **beginning_capital_account** | Prior month’s `ending_capital`. Period 0: not applicable (`NaN`). |
 | **capital_called** | Positive drawdown during the investment phase only. Remaining effective unfunded at the start of the month is spread evenly over the months from `period_start` through `investment end date`. No calls after investment ends, if reinvestment already ended before projection start, or if funded amount already exceeds effective commitment. |
-| **roc** (return of capital) | Negative cash return of invested capital during **harvest** (`period_end > reinvestment end date`). The base amount is `beginning_capital_account + capital_called`, returned on the harvest schedule (evenly by month until termination, or fully in the termination month). |
+| **roc** (return of capital) | Negative cash return of invested capital during **harvest** (`period_end > reinvestment end date`), and on **immediate liquidation** (period 1 when termination is on or before the as-of date). The base amount is `beginning_capital_account + capital_called`, returned on the harvest schedule (evenly by month until termination, or fully in the termination month). Liquidation: `−min(prior NAV, funded amount)`, or `−prior NAV` if unfunded. |
 | **ending_capital** | `beginning_capital_account + capital_called + roc`. Period 0: `funded_amount` if still in investment phase; otherwise `min(stated NAV, total commitment)`. Liquidation month: `0`. |
 | **beginning_unrealized_gl** | Opening unrealized gain/loss. Period 1: `max(stated NAV − funded amount, 0)`. Later months: prior `ending_unrealized_gl`. Period 0: `NaN`. |
 | **asset_income** | `max(prior month NAV × monthly_return, 0)` while `period_end ≤ termination date`; otherwise `0`. `monthly_return = (1 + annual_return)^(1/12) − 1`. Period 0: `NaN`. |
@@ -81,10 +81,10 @@ These columns appear on each fund’s monthly rows (Funds Monthly tab). Unless n
 | **dividend** | Cash distribution (negative = paid to investors). Zero if distribution target is `0` or `period_end ≥ termination date`. Otherwise target is `prior NAV × (annual distribution target / 12)`, capped so the distribution does not exceed available net income after carry. Period 0: `NaN`. |
 | **retained_income** | `pre_carry_income + carry_amt + dividend`. Drives unrealized G/L for the month. Period 0: `NaN`. |
 | **period_gl** | Same as `retained_income` (period change in unrealized G/L before realization). Period 0: `NaN`. |
-| **gain_on_sale** | Realization of unrealized G/L. If termination falls in this month: `−(beginning_unrealized_gl + period_gl)`. If unrealized base is negative: `0`. Otherwise, same harvest schedule as ROC on `beginning_unrealized_gl + period_gl`. Liquidation month: `max(0, prior NAV − funded amount)`. Period 0: `NaN`. |
+| **gain_on_sale** | Realization of unrealized G/L. If termination falls in this month: `−(beginning_unrealized_gl + period_gl)`. If unrealized base is negative: `0`. Otherwise, same harvest schedule as ROC on `beginning_unrealized_gl + period_gl`. Liquidation month: `−max(0, prior NAV − funded amount)`. Period 0: `NaN`. |
 | **ending_unrealized_gl** | `beginning_unrealized_gl + period_gl + gain_on_sale`. Period 0: `0`. Liquidation: `0`. |
 | **nav** | `ending_capital + ending_unrealized_gl`. Period 0: **stated NAV** from assumptions. Liquidation: `0`. |
-| **net_cf** | Net cash flow **to the investor** (positive = cash in). Operating months: `−(capital_called + roc + gain_on_sale + dividend)`. Period 0: `−stated NAV`. Liquidation: `roc + gain_on_sale`. |
+| **net_cf** | Net cash flow **to the investor** (positive = cash in). Operating months and liquidation: `−(capital_called + roc + gain_on_sale + dividend)` (distribution lines are negative outflows). Period 0: `−stated NAV`. |
 
 **Harvest schedule (shared by ROC and gain on sale):** After reinvestment ends, outflows are spread evenly across months from the current `period_end` through `termination date`, except the termination month, which returns the full remaining balance.
 
